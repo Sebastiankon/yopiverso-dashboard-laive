@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Yopiverso - Campaña Laive en Roblox - Konektor Chile</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         * {
@@ -105,22 +104,43 @@
             border-color: #10b981;
         }
         
-        /* Metrics Grid */
-        .metrics-container {
+        /* Container principal */
+        .main-container {
             padding: 30px 40px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
         
+        /* Secciones */
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        /* Grid de métricas */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        /* Tarjeta de métrica */
         .metric-card {
             background: white;
             border-radius: 16px;
             padding: 24px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
         
         .metric-card:hover {
@@ -145,6 +165,7 @@
             font-size: 20px;
         }
         
+        /* Colores de iconos por tipo */
         .metric-icon.impressions { background: #fee2e2; }
         .metric-icon.visits { background: #dbeafe; }
         .metric-icon.clicks { background: #d1fae5; }
@@ -153,6 +174,11 @@
         .metric-icon.spend { background: #fed7aa; }
         .metric-icon.session { background: #e9d5ff; }
         .metric-icon.retention { background: #fef3c7; }
+        .metric-icon.ctr { background: #dcfce7; }
+        .metric-icon.cpc { background: #fce7f3; }
+        .metric-icon.cpv { background: #e0e7ff; }
+        .metric-icon.cpm { background: #f3e8ff; }
+        .metric-icon.new-users { background: #cffafe; }
         
         .metric-title {
             font-size: 14px;
@@ -172,33 +198,30 @@
             color: #9ca3af;
         }
         
-        /* Charts Container */
-        .charts-container {
-            padding: 0 40px 40px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .chart-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        
-        .chart-title {
-            font-size: 18px;
+        /* Indicador de cambio */
+        .metric-change {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 12px;
             font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 20px;
+            padding: 4px 8px;
+            border-radius: 6px;
         }
         
-        .chart-container {
-            position: relative;
-            height: 300px;
+        .metric-change.positive {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .metric-change.negative {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .metric-change.neutral {
+            background: #f3f4f6;
+            color: #6b7280;
         }
         
         /* Loading State */
@@ -237,12 +260,11 @@
                 text-align: center;
             }
             
-            .metrics-container,
-            .charts-container {
+            .main-container {
                 padding: 20px;
             }
             
-            .charts-container {
+            .metrics-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -276,179 +298,150 @@
         </div>
     </header>
 
-    <div class="metrics-container">
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon impressions">👁️</div>
-                <div class="metric-title">Impresiones Totales</div>
-            </div>
-            <div class="metric-value" id="totalImpressions">0</div>
-            <div class="metric-subtitle">Sin datos</div>
-        </div>
+    <div class="main-container">
+        <!-- Sección de métricas principales -->
+        <section class="section">
+            <h2 class="section-title">Métricas Principales</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon impressions">👁️</div>
+                        <div class="metric-title">Impresiones Totales</div>
+                    </div>
+                    <div class="metric-value" id="totalImpressions">0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon visits">🏠</div>
-                <div class="metric-title">Visitas Totales</div>
-            </div>
-            <div class="metric-value" id="totalVisits">0</div>
-            <div class="metric-subtitle">Al mundo Yopiverso</div>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon visits">🏠</div>
+                        <div class="metric-title">Visitas Totales</div>
+                    </div>
+                    <div class="metric-value" id="totalVisits">0</div>
+                    <div class="metric-subtitle">Al mundo Yopiverso</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon clicks">🖱️</div>
-                <div class="metric-title">Clics Totales</div>
-            </div>
-            <div class="metric-value" id="totalClicks">0</div>
-            <div class="metric-subtitle">Sin datos</div>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon clicks">🖱️</div>
+                        <div class="metric-title">Clics Totales</div>
+                    </div>
+                    <div class="metric-value" id="totalClicks">0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon users">🎮</div>
-                <div class="metric-title">Usuarios Activos Diarios</div>
-            </div>
-            <div class="metric-value" id="dailyActiveUsers">0</div>
-            <div class="metric-subtitle">Sin datos</div>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon users">🎮</div>
+                        <div class="metric-title">Usuarios Activos Diarios</div>
+                    </div>
+                    <div class="metric-value" id="dailyActiveUsers">0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon time">⏱️</div>
-                <div class="metric-title">Tiempo Total de Interacción</div>
-            </div>
-            <div class="metric-value" id="totalInteractionTime">0min</div>
-            <div class="metric-subtitle">Engagement con marca</div>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon time">⏱️</div>
+                        <div class="metric-title">Tiempo Total de Interacción</div>
+                    </div>
+                    <div class="metric-value" id="totalInteractionTime">0min</div>
+                    <div class="metric-subtitle">Engagement con marca</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon spend">💰</div>
-                <div class="metric-title">Gasto Total (USD)</div>
-            </div>
-            <div class="metric-value" id="totalSpend">$0</div>
-            <div class="metric-subtitle">Sin datos</div>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon spend">💰</div>
+                        <div class="metric-title">Gasto Total (USD)</div>
+                    </div>
+                    <div class="metric-value" id="totalSpend">$0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon session">⏰</div>
-                <div class="metric-title">Tiempo Promedio de Sesión</div>
-            </div>
-            <div class="metric-value" id="avgSessionTime">0min</div>
-            <div class="metric-subtitle">Sin datos</div>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon session">⏰</div>
+                        <div class="metric-title">Tiempo Promedio de Sesión</div>
+                    </div>
+                    <div class="metric-value" id="avgSessionTime">0min</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
 
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon retention">📊</div>
-                <div class="metric-title">Retención Día 1</div>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon retention">📊</div>
+                        <div class="metric-title">Retención Día 1</div>
+                    </div>
+                    <div class="metric-value" id="retentionDay1">0%</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
             </div>
-            <div class="metric-value" id="retentionDay1">0%</div>
-            <div class="metric-subtitle">Sin datos</div>
-        </div>
-    </div>
+        </section>
 
-    <div class="charts-container">
-        <div class="chart-card">
-            <h3 class="chart-title">Engagement y Retención</h3>
-            <div class="chart-container">
-                <canvas id="engagementChart"></canvas>
-            </div>
-        </div>
+        <!-- Sección de métricas de rendimiento -->
+        <section class="section">
+            <h2 class="section-title">Métricas de Rendimiento de Campaña</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon ctr">📈</div>
+                        <div class="metric-title">CTR (Click Through Rate)</div>
+                    </div>
+                    <div class="metric-value" id="ctr">0%</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
 
-        <div class="chart-card">
-            <h3 class="chart-title">Rendimiento de Inversión</h3>
-            <div class="chart-container">
-                <canvas id="roiChart"></canvas>
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon cpc">💸</div>
+                        <div class="metric-title">CPC Promedio</div>
+                    </div>
+                    <div class="metric-value" id="avgCPC">$0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon cpv">🎯</div>
+                        <div class="metric-title">CPV Promedio</div>
+                    </div>
+                    <div class="metric-value" id="avgCPV">$0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon cpm">📢</div>
+                        <div class="metric-title">CPM Promedio</div>
+                    </div>
+                    <div class="metric-value" id="avgCPM">$0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon new-users">👥</div>
+                        <div class="metric-title">Nuevos Usuarios</div>
+                    </div>
+                    <div class="metric-value" id="newUsers">0</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon ctr">🔄</div>
+                        <div class="metric-title">Tasa de Conversión</div>
+                    </div>
+                    <div class="metric-value" id="conversionRate">0%</div>
+                    <div class="metric-subtitle">Sin datos</div>
+                </div>
             </div>
-        </div>
+        </section>
     </div>
 
     <script>
         // Variables globales
         let campaignData = null;
         let experienceData = null;
-        let engagementChart = null;
-        let roiChart = null;
-        
-        // Inicializar Charts
-        function initCharts() {
-            // Chart de Engagement
-            const ctxEngagement = document.getElementById('engagementChart').getContext('2d');
-            engagementChart = new Chart(ctxEngagement, {
-                type: 'bar',
-                data: {
-                    labels: ['Visitas Totales', 'Usuarios Activos', 'Retención %'],
-                    datasets: [{
-                        label: 'Métricas de Engagement',
-                        data: [0, 0, 0],
-                        backgroundColor: [
-                            'rgba(124, 58, 237, 0.8)',
-                            'rgba(167, 139, 250, 0.8)',
-                            'rgba(196, 181, 253, 0.8)'
-                        ],
-                        borderColor: [
-                            'rgba(124, 58, 237, 1)',
-                            'rgba(167, 139, 250, 1)',
-                            'rgba(196, 181, 253, 1)'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                display: false
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // Chart de ROI
-            const ctxROI = document.getElementById('roiChart').getContext('2d');
-            roiChart = new Chart(ctxROI, {
-                type: 'doughnut',
-                data: {
-                    labels: ['CTR', 'CPC', 'CPV', 'Conv. Rate'],
-                    datasets: [{
-                        data: [0, 0, 0, 0],
-                        backgroundColor: [
-                            'rgba(124, 58, 237, 0.8)',
-                            'rgba(167, 139, 250, 0.8)',
-                            'rgba(196, 181, 253, 0.8)',
-                            'rgba(233, 213, 255, 0.8)'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        }
-                    }
-                }
-            });
-        }
         
         // Cargar archivo de campaña
         document.getElementById('fileCampaign').addEventListener('change', function(e) {
@@ -461,6 +454,7 @@
                     header: true,
                     dynamicTyping: true,
                     skipEmptyLines: true,
+                    delimitersToGuess: [',', '\t', '|', ';'],
                     complete: function(results) {
                         campaignData = results.data;
                         processCampaignData();
@@ -486,6 +480,7 @@
                     header: true,
                     dynamicTyping: true,
                     skipEmptyLines: true,
+                    delimitersToGuess: [',', '\t', '|', ';'],
                     complete: function(results) {
                         experienceData = results.data[0]; // Solo una fila
                         processExperienceData();
@@ -508,78 +503,122 @@
             let totalClicks = 0;
             let totalVisits = 0;
             let totalSpend = 0;
+            let totalCPC = 0;
+            let totalCPV = 0;
+            let totalCPM = 0;
+            let validCPCCount = 0;
+            let validCPVCount = 0;
+            let validCPMCount = 0;
             
             campaignData.forEach(row => {
-                totalImpressions += row.Impresiones || 0;
-                totalClicks += row.Clics || 0;
-                totalVisits += row['Visitas '] || 0;
+                // Limpiar espacios en las claves
+                const cleanRow = {};
+                Object.keys(row).forEach(key => {
+                    cleanRow[key.trim()] = row[key];
+                });
+                
+                totalImpressions += cleanRow.Impresiones || 0;
+                totalClicks += cleanRow.Clics || 0;
+                totalVisits += cleanRow['Visitas'] || 0;
                 
                 // Parsear gasto (remover $ y convertir a número)
-                const spend = parseFloat(row['Gasto (USD)'].replace('$', '').replace(',', '')) || 0;
+                const spendStr = String(cleanRow['Gasto (USD)'] || '0');
+                const spend = parseFloat(spendStr.replace('$', '').replace(',', '')) || 0;
                 totalSpend += spend;
+                
+                // Parsear métricas promedio
+                const cpcStr = String(cleanRow.CPC || '0');
+                const cpc = parseFloat(cpcStr.replace('$', '').replace(',', '')) || 0;
+                if (cpc > 0) {
+                    totalCPC += cpc;
+                    validCPCCount++;
+                }
+                
+                const cpvStr = String(cleanRow.CPV || '0');
+                const cpv = parseFloat(cpvStr.replace('$', '').replace(',', '')) || 0;
+                if (cpv > 0) {
+                    totalCPV += cpv;
+                    validCPVCount++;
+                }
+                
+                const cpmStr = String(cleanRow.CPM || '0');
+                const cpm = parseFloat(cpmStr.replace('$', '').replace(',', '')) || 0;
+                if (cpm > 0) {
+                    totalCPM += cpm;
+                    validCPMCount++;
+                }
             });
             
-            // Actualizar métricas
+            // Actualizar métricas principales
             document.getElementById('totalImpressions').textContent = totalImpressions.toLocaleString();
             document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
             document.getElementById('totalVisits').textContent = totalVisits.toLocaleString();
             document.getElementById('totalSpend').textContent = '$' + totalSpend.toFixed(2);
             
-            // Actualizar subtítulos
-            document.querySelector('#totalImpressions').nextElementSibling.textContent = 'Actualizado';
-            document.querySelector('#totalClicks').nextElementSibling.textContent = 'Actualizado';
-            document.querySelector('#totalSpend').nextElementSibling.textContent = 'Actualizado';
-            
-            // Calcular métricas de ROI
+            // Calcular y actualizar métricas de rendimiento
             const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0;
-            const cpc = totalClicks > 0 ? (totalSpend / totalClicks) : 0;
-            const cpv = totalVisits > 0 ? (totalSpend / totalVisits) : 0;
-            const conversionRate = totalVisits > 0 ? (totalVisits / totalClicks * 100) : 0;
+            document.getElementById('ctr').textContent = ctr.toFixed(2) + '%';
             
-            // Actualizar gráfico de ROI
-            roiChart.data.datasets[0].data = [
-                ctr.toFixed(2),
-                cpc.toFixed(2),
-                cpv.toFixed(2),
-                conversionRate.toFixed(2)
-            ];
-            roiChart.update();
+            const avgCPC = validCPCCount > 0 ? (totalCPC / validCPCCount) : 0;
+            document.getElementById('avgCPC').textContent = '$' + avgCPC.toFixed(2);
+            
+            const avgCPV = validCPVCount > 0 ? (totalCPV / validCPVCount) : 0;
+            document.getElementById('avgCPV').textContent = '$' + avgCPV.toFixed(2);
+            
+            const avgCPM = validCPMCount > 0 ? (totalCPM / validCPMCount) : 0;
+            document.getElementById('avgCPM').textContent = '$' + avgCPM.toFixed(2);
+            
+            const conversionRate = totalClicks > 0 ? (totalVisits / totalClicks * 100) : 0;
+            document.getElementById('conversionRate').textContent = conversionRate.toFixed(2) + '%';
+            
+            // Actualizar subtítulos
+            updateSubtitles(['totalImpressions', 'totalClicks', 'totalSpend', 'ctr', 'avgCPC', 'avgCPV', 'avgCPM', 'conversionRate']);
         }
         
         // Procesar datos de experiencia
         function processExperienceData() {
             if (!experienceData) return;
             
+            // Limpiar espacios en las claves
+            const cleanData = {};
+            Object.keys(experienceData).forEach(key => {
+                cleanData[key.trim()] = experienceData[key];
+            });
+            
             // Actualizar métricas
-            document.getElementById('dailyActiveUsers').textContent = experienceData['Usuarios activos diarios'].toLocaleString();
-            document.getElementById('avgSessionTime').textContent = experienceData['tiempo de sesión promedio'];
-            document.getElementById('retentionDay1').textContent = experienceData['retención día 1'];
+            const dailyUsers = cleanData['Usuarios activos diarios'] || 0;
+            document.getElementById('dailyActiveUsers').textContent = dailyUsers.toLocaleString();
+            
+            const newUsers = cleanData['nuevos usuarios'] || 0;
+            document.getElementById('newUsers').textContent = newUsers.toLocaleString();
+            
+            document.getElementById('avgSessionTime').textContent = cleanData['tiempo de sesión promedio'] || '0min';
+            document.getElementById('retentionDay1').textContent = cleanData['retención día 1'] || '0%';
             
             // Actualizar tiempo total de interacción
-            const totalMinutes = experienceData['tiempo total interaccion'];
+            const totalMinutes = cleanData['tiempo total interaccion'] || 0;
             const hours = Math.floor(totalMinutes / 60);
             const minutes = totalMinutes % 60;
             const timeFormatted = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}min`;
             document.getElementById('totalInteractionTime').textContent = timeFormatted;
             
             // Si hay datos de visitas totales en experiencia, actualizar
-            if (experienceData['Visitas Totales']) {
-                document.getElementById('totalVisits').textContent = experienceData['Visitas Totales'].toLocaleString();
+            if (cleanData['Visitas Totales']) {
+                document.getElementById('totalVisits').textContent = cleanData['Visitas Totales'].toLocaleString();
             }
             
             // Actualizar subtítulos
-            document.querySelector('#dailyActiveUsers').nextElementSibling.textContent = 'Actualizado';
-            document.querySelector('#avgSessionTime').nextElementSibling.textContent = 'Actualizado';
-            document.querySelector('#retentionDay1').nextElementSibling.textContent = 'Actualizado';
-            
-            // Actualizar gráfico de engagement
-            const retentionValue = parseFloat(experienceData['retención día 1'].replace('%', ''));
-            engagementChart.data.datasets[0].data = [
-                experienceData['Visitas Totales'] || 0,
-                experienceData['Usuarios activos diarios'],
-                retentionValue
-            ];
-            engagementChart.update();
+            updateSubtitles(['dailyActiveUsers', 'avgSessionTime', 'retentionDay1', 'totalInteractionTime', 'newUsers']);
+        }
+        
+        // Actualizar subtítulos
+        function updateSubtitles(ids) {
+            ids.forEach(id => {
+                const element = document.getElementById(id);
+                if (element && element.nextElementSibling) {
+                    element.nextElementSibling.textContent = 'Actualizado';
+                }
+            });
         }
         
         // Funciones de utilidad
@@ -612,11 +651,6 @@
             const sessionMinutes = Math.floor((Date.now() - sessionStartTime) / 60000);
             console.log('Tiempo de sesión:', sessionMinutes, 'minutos');
         }, 60000);
-        
-        // Inicializar al cargar
-        document.addEventListener('DOMContentLoaded', function() {
-            initCharts();
-        });
     </script>
 </body>
 </html>
