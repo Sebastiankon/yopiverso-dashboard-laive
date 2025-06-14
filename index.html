@@ -696,10 +696,12 @@
         function updateCampaignsTable() {
             const container = document.getElementById('campaignsTableContainer');
             
-            if (adsData.length === 0) {
+            if (!adsData || adsData.length === 0) {
                 container.innerHTML = '<div class="no-data">📊 Carga el archivo CSV de campañas para ver el detalle</div>';
                 return;
             }
+
+            console.log('Actualizando tabla de campañas con:', adsData);
 
             let tableHTML = `
                 <table>
@@ -719,25 +721,34 @@
                     <tbody>
             `;
 
-            adsData.forEach(row => {
-                const status = (parseFloat(row['Gasto (USD)']) || 0) > 0 ? 'active' : 'pending';
+            adsData.forEach((row, index) => {
+                const gasto = parseFloat(row['Gasto (USD)'] || row['gasto'] || '0') || 0;
+                const status = gasto > 0 ? 'active' : 'pending';
+                const statusText = status === 'active' ? 'Activa' : 'Pendiente';
+                
+                const impresiones = parseFloat(row['Impresiones'] || row['impresiones'] || '0') || 0;
+                const clics = parseFloat(row['Clics'] || row['clics'] || '0') || 0;
+                const cpc = parseFloat(row['CPC'] || row['cpc'] || '0') || 0;
+                
                 tableHTML += `
                     <tr>
-                        <td><span class="status-indicator ${status}"></span>${status === 'active' ? 'Activa' : 'Pendiente'}</td>
-                        <td>${row['Nombre Campaña'] || '-'}</td>
-                        <td>${row['Segmento Targeting'] || '-'}</td>
-                        <td>${row['Formato Anuncio'] || '-'}</td>
-                        <td>${row['Dispositivo'] || '-'}</td>
-                        <td>${formatNumber(row['Impresiones'] || 0)}</td>
-                        <td>${formatNumber(row['Clics'] || 0)}</td>
-                        <td>$${formatNumber(row['Gasto (USD)'] || 0)}</td>
-                        <td>$${formatNumber(row['CPC'] || 0)}</td>
+                        <td><span class="status-indicator ${status}"></span>${statusText}</td>
+                        <td>${row['Nombre Campaña'] || row['nombre campaña'] || '-'}</td>
+                        <td>${row['Segmento Targeting'] || row['segmento targeting'] || '-'}</td>
+                        <td>${row['Formato Anuncio'] || row['formato anuncio'] || '-'}</td>
+                        <td>${row['Dispositivo'] || row['dispositivo'] || '-'}</td>
+                        <td>${formatNumber(impresiones)}</td>
+                        <td>${formatNumber(clics)}</td>
+                        <td>${formatNumber(gasto)}</td>
+                        <td>${formatNumber(cpc)}</td>
                     </tr>
                 `;
             });
 
             tableHTML += '</tbody></table>';
             container.innerHTML = tableHTML;
+            
+            console.log('Tabla de campañas actualizada correctamente');
         }
 
         function updateLastUpdate() {
@@ -785,7 +796,8 @@
             }
         }
 
-        // Inicializar dashboard con datos de ejemplo o vacío
+        // Inicializar dashboard
+        console.log('Dashboard Yopiverso inicializado');
         updateLastUpdate();
     </script>
 </body>
@@ -818,10 +830,13 @@
         }
 
         function calculateTotalInteractionTime(totalVisits, avgSessionTimeStr, dataRow) {
+            console.log('Calculando tiempo total de interacción:', { totalVisits, avgSessionTimeStr, dataRow });
+            
             // Si ya existe una columna específica para tiempo de interacción, usarla
             if (dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion']) {
                 const totalInteraction = dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion'];
                 document.getElementById('totalInteractionTime').textContent = totalInteraction;
+                document.getElementById('interactionChange').textContent = 'Datos precalculados';
                 return;
             }
             
@@ -830,6 +845,7 @@
             
             // Extraer minutos del string de tiempo promedio
             if (avgSessionTimeStr && avgSessionTimeStr !== '0') {
+                // Buscar números en el string
                 const timeMatch = avgSessionTimeStr.match(/(\d+(?:\.\d+)?)/);
                 if (timeMatch) {
                     sessionMinutes = parseFloat(timeMatch[1]);
@@ -842,21 +858,20 @@
             }
             
             const totalInteractionMinutes = totalVisits * sessionMinutes;
+            console.log('Tiempo total calculado:', totalInteractionMinutes, 'minutos');
             
             // Formatear tiempo total
             let formattedTime;
             if (totalInteractionMinutes >= 60) {
                 const hours = Math.floor(totalInteractionMinutes / 60);
                 const minutes = Math.round(totalInteractionMinutes % 60);
-                formattedTime = `${formatNumber(hours)}h ${minutes}m`;
+                formattedTime = hours + 'h ' + minutes + 'm';
             } else {
-                formattedTime = `${formatNumber(totalInteractionMinutes)}min`;
+                formattedTime = Math.round(totalInteractionMinutes) + 'min';
             }
             
             document.getElementById('totalInteractionTime').textContent = formattedTime;
-            
-            // Actualizar el texto explicativo
-            document.getElementById('interactionChange').textContent = `${formatNumber(totalVisits)} visitas × ${avgSessionTimeStr}`;
+            document.getElementById('interactionChange').textContent = totalVisits + ' visitas × ' + avgSessionTimeStr;
         }
 
         function updateCharts() {
