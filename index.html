@@ -1,4 +1,12 @@
-<!DOCTYPE html>
+    // Actualizar gráficos
+        function updateCharts() {
+            console.log('Actualizando gráficos...');
+            // Pequeño delay para asegurar que los valores estén actualizados en el DOM
+            setTimeout(() => {
+                updateEngagementChart();
+                updateROIChart();
+            }, 100);
+        }<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -551,52 +559,1120 @@
         function updateAdsMetrics() {
             if (!adsData || adsData.length === 0) return;
             
-            console.log('Actualizando métricas de Ads...');
+            console.log('Actualizando métricas de Ads con datos reales...');
+            console.log('Datos de Ads:', adsData);
             
             let totalImpressions = 0;
             let totalClicks = 0;
             let totalSpend = 0;
             let totalVisitsFromAds = 0;
 
-            adsData.forEach(row => {
-                totalImpressions += parseFloat(row['Impresiones'] || 0) || 0;
-                totalClicks += parseFloat(row['Clics'] || 0) || 0;
-                totalSpend += parseFloat(row['Gasto (USD)'] || 0) || 0;
-                totalVisitsFromAds += parseFloat(row['Visitas'] || row['Visitas '] || 0) || 0;
+            adsData.forEach((row, index) => {
+                console.log(`Procesando fila ${index}:`, row);
+                
+                // Manejar las impresiones (ya son números)
+                const impressions = parseInt(row['Impresiones']) || 0;
+                
+                // Manejar clics (pueden estar vacíos)
+                const clicks = row['Clics'] ? parseFloat(row['Clics']) : 0;
+                
+                // Manejar gasto (remover $ y convertir)
+                const spendStr = row['Gasto (USD)'] || '$0';
+                const spend = parseFloat(spendStr.replace('
+
+        // Eliminar función calculateTotalInteractionTime ya que viene precalculado
+        
+        // Gráfico de engagement
+        function updateEngagementChart() {
+            const ctx = document.getElementById('engagementChart').getContext('2d');
+            
+            if (engagementChart) {
+                engagementChart.destroy();
+            }
+
+            // Obtener valores de la interfaz (ya actualizados)
+            const totalVisitsText = document.getElementById('totalVisits').textContent;
+            const dailyActiveUsersText = document.getElementById('dailyActiveUsers').textContent;
+            const retentionText = document.getElementById('retentionDay1').textContent;
+            
+            const totalVisits = parseFloat(totalVisitsText.replace(/,/g, '')) || 0;
+            const dailyActiveUsers = parseFloat(dailyActiveUsersText.replace(/,/g, '')) || 0;
+            const retentionDay1 = parseFloat(retentionText.replace('%', '')) || 0;
+
+            console.log('Datos para gráfico de engagement:', {
+                totalVisits, dailyActiveUsers, retentionDay1
             });
 
+            engagementChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Visitas Totales', 'Usuarios Activos', 'Retención %'],
+                    datasets: [{
+                        label: 'Métricas de Engagement',
+                        data: [totalVisits, dailyActiveUsers, retentionDay1],
+                        backgroundColor: [colors.primary, colors.success, colors.accent],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label;
+                                    let value = context.parsed.y;
+                                    
+                                    if (label.includes('Retención')) {
+                                        return label + ': ' + value + '%';
+                                    } else {
+                                        return label + ': ' + formatNumber(value);
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatNumber(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de ROI
+        function updateROIChart() {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            
+            if (roiChart) {
+                roiChart.destroy();
+            }
+
+            const totalSpend = parseFloat(document.getElementById('totalSpend').textContent.replace(/[\$,]/g, '')) || 1;
+            const totalClicks = parseFloat(document.getElementById('totalClicks').textContent.replace(/,/g, '')) || 0;
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const totalImpressions = parseFloat(document.getElementById('totalImpressions').textContent.replace(/,/g, '')) || 1;
+
+            const ctr = (totalClicks / totalImpressions) * 100;
+            const costPerClick = totalSpend / (totalClicks || 1);
+            const costPerVisit = totalSpend / (totalVisits || 1);
+            const conversionRate = (totalVisits / (totalClicks || 1)) * 100;
+
+            roiChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        'CTR: ' + ctr.toFixed(2) + '%',
+                        'Conv: ' + conversionRate.toFixed(1) + '%',
+                        'CPC: $' + costPerClick.toFixed(2),
+                        'CPV: $' + costPerVisit.toFixed(2)
+                    ],
+                    datasets: [{
+                        data: [ctr, conversionRate, costPerClick * 10, costPerVisit * 10],
+                        backgroundColor: [colors.primary, colors.success, colors.warning, colors.accent],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // Actualizar tabla de campañas
+        function updateCampaignsTable() {
+            const container = document.getElementById('campaignsTableContainer');
+            
+            if (!adsData || adsData.length === 0) {
+                container.innerHTML = '<div class="no-data">📊 Carga el archivo CSV de campañas para ver el detalle</div>';
+                return;
+            }
+
+            console.log('Actualizando tabla de campañas con datos reales...');
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Campaña</th>
+                            <th>Targeting</th>
+                            <th>Formato</th>
+                            <th>Dispositivo</th>
+                            <th>Impresiones</th>
+                            <th>Clics</th>
+                            <th>Visitas</th>
+                            <th>Gasto (USD)</th>
+                            <th>ITV</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            adsData.forEach((row, index) => {
+                // Procesar datos específicos del CSV real
+                const impresiones = parseInt(row['Impresiones']) || 0;
+                const clics = row['Clics'] ? parseFloat(row['Clics']) : 0;
+                const visitas = parseInt(row['Visitas '] || row['Visitas']) || 0;
+                const gastoStr = row['Gasto (USD)'] || '$0';
+                const gasto = parseFloat(gastoStr.replace('
+
+        // Funciones auxiliares
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '' || isNaN(num)) {
+                return '0';
+            }
+            if (typeof num === 'string') {
+                num = parseFloat(num.replace(/[^\d.,]/g, '')) || 0;
+            }
+            return new Intl.NumberFormat('es-CL').format(Math.round(num));
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            if (message) {
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = dateStr;
+        }
+
+        console.log('Dashboard Yopiverso cargado completamente');
+    </script>
+</body>
+</html>, '').replace(',', '')) || 0;
+                
+                // Manejar visitas (con espacio en el nombre de columna)
+                const visits = parseInt(row['Visitas '] || row['Visitas']) || 0;
+                
+                totalImpressions += impressions;
+                totalClicks += clicks;
+                totalSpend += spend;
+                totalVisitsFromAds += visits;
+                
+                console.log(`Fila ${index} procesada:`, {
+                    impressions, clicks, spend, visits
+                });
+            });
+
+            console.log('Totales calculados:', {
+                totalImpressions, totalClicks, totalSpend, totalVisitsFromAds
+            });
+
+            // Actualizar la interfaz
             document.getElementById('totalImpressions').textContent = formatNumber(totalImpressions);
             document.getElementById('totalClicks').textContent = formatNumber(totalClicks);
-            document.getElementById('totalSpend').textContent = '$' + formatNumber(totalSpend);
+            document.getElementById('totalSpend').textContent = '
+
+        // Calcular tiempo total de interacción
+        function calculateTotalInteractionTime(totalVisits, avgSessionTimeStr, dataRow) {
+            console.log('Calculando tiempo de interacción...');
+            
+            if (dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion']) {
+                const totalInteraction = dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion'];
+                document.getElementById('totalInteractionTime').textContent = totalInteraction;
+                document.getElementById('interactionChange').textContent = 'Datos precalculados';
+                return;
+            }
+            
+            let sessionMinutes = 0;
+            
+            if (avgSessionTimeStr && avgSessionTimeStr !== '0') {
+                const timeMatch = avgSessionTimeStr.match(/(\d+(?:\.\d+)?)/);
+                if (timeMatch) {
+                    sessionMinutes = parseFloat(timeMatch[1]);
+                    if (avgSessionTimeStr.toLowerCase().includes('h')) {
+                        sessionMinutes *= 60;
+                    }
+                }
+            }
+            
+            const totalInteractionMinutes = totalVisits * sessionMinutes;
+            
+            let formattedTime;
+            if (totalInteractionMinutes >= 60) {
+                const hours = Math.floor(totalInteractionMinutes / 60);
+                const minutes = Math.round(totalInteractionMinutes % 60);
+                formattedTime = hours + 'h ' + minutes + 'm';
+            } else {
+                formattedTime = Math.round(totalInteractionMinutes) + 'min';
+            }
+            
+            document.getElementById('totalInteractionTime').textContent = formattedTime;
+            document.getElementById('interactionChange').textContent = totalVisits + ' visitas × ' + avgSessionTimeStr;
+        }
+
+        // Actualizar gráficos
+        function updateCharts() {
+            console.log('Actualizando gráficos...');
+            updateEngagementChart();
+            updateROIChart();
+        }
+
+        // Gráfico de engagement
+        function updateEngagementChart() {
+            const ctx = document.getElementById('engagementChart').getContext('2d');
+            
+            if (engagementChart) {
+                engagementChart.destroy();
+            }
+
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const dailyActiveUsers = parseFloat(document.getElementById('dailyActiveUsers').textContent.replace(/,/g, '')) || 0;
+            const retentionDay1 = parseFloat(document.getElementById('retentionDay1').textContent.replace('%', '')) || 0;
+
+            engagementChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Visitas Totales', 'Usuarios Activos', 'Retención %'],
+                    datasets: [{
+                        label: 'Métricas de Engagement',
+                        data: [totalVisits, dailyActiveUsers, retentionDay1],
+                        backgroundColor: [colors.primary, colors.success, colors.accent],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // Gráfico de ROI
+        function updateROIChart() {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            
+            if (roiChart) {
+                roiChart.destroy();
+            }
+
+            const totalSpend = parseFloat(document.getElementById('totalSpend').textContent.replace(/[\$,]/g, '')) || 1;
+            const totalClicks = parseFloat(document.getElementById('totalClicks').textContent.replace(/,/g, '')) || 0;
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const totalImpressions = parseFloat(document.getElementById('totalImpressions').textContent.replace(/,/g, '')) || 1;
+
+            const ctr = (totalClicks / totalImpressions) * 100;
+            const costPerClick = totalSpend / (totalClicks || 1);
+            const costPerVisit = totalSpend / (totalVisits || 1);
+            const conversionRate = (totalVisits / (totalClicks || 1)) * 100;
+
+            roiChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        'CTR: ' + ctr.toFixed(2) + '%',
+                        'Conv: ' + conversionRate.toFixed(1) + '%',
+                        'CPC: $' + costPerClick.toFixed(2),
+                        'CPV: $' + costPerVisit.toFixed(2)
+                    ],
+                    datasets: [{
+                        data: [ctr, conversionRate, costPerClick * 10, costPerVisit * 10],
+                        backgroundColor: [colors.primary, colors.success, colors.warning, colors.accent],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // Actualizar tabla de campañas
+        function updateCampaignsTable() {
+            const container = document.getElementById('campaignsTableContainer');
+            
+            if (!adsData || adsData.length === 0) {
+                container.innerHTML = '<div class="no-data">📊 Carga el archivo CSV de campañas para ver el detalle</div>';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Campaña</th>
+                            <th>Targeting</th>
+                            <th>Formato</th>
+                            <th>Dispositivo</th>
+                            <th>Impresiones</th>
+                            <th>Clics</th>
+                            <th>Gasto (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            adsData.forEach(row => {
+                const gasto = parseFloat(row['Gasto (USD)'] || 0) || 0;
+                const status = gasto > 0 ? 'active' : 'pending';
+                const statusText = status === 'active' ? 'Activa' : 'Pendiente';
+                
+                tableHTML += `
+                    <tr>
+                        <td><span class="status-indicator ${status}"></span>${statusText}</td>
+                        <td>${row['Nombre Campaña'] || '-'}</td>
+                        <td>${row['Segmento Targeting'] || '-'}</td>
+                        <td>${row['Formato Anuncio'] || '-'}</td>
+                        <td>${row['Dispositivo'] || '-'}</td>
+                        <td>${formatNumber(row['Impresiones'] || 0)}</td>
+                        <td>${formatNumber(row['Clics'] || 0)}</td>
+                        <td>$${formatNumber(gasto)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // Funciones auxiliares
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '' || isNaN(num)) {
+                return '0';
+            }
+            if (typeof num === 'string') {
+                num = parseFloat(num.replace(/[^\d.,]/g, '')) || 0;
+            }
+            return new Intl.NumberFormat('es-CL').format(Math.round(num));
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            if (message) {
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = dateStr;
+        }
+
+        console.log('Dashboard Yopiverso cargado completamente');
+    </script>
+</body>
+</html> + formatNumber(totalSpend);
+            
+            // Actualizar indicadores de cambio
+            document.getElementById('impressionsChange').textContent = 'Datos actualizados';
+            document.getElementById('clicksChange').textContent = 'Datos actualizados';
+            document.getElementById('spendChange').textContent = 'Datos actualizados';
             
             if (totalVisitsFromAds > 0) {
                 document.getElementById('totalVisits').textContent = formatNumber(totalVisitsFromAds);
+                document.getElementById('visitsChange').textContent = 'Desde anuncios';
             }
             
-            console.log('Métricas de Ads actualizadas');
+            console.log('Métricas de Ads actualizadas correctamente');
         }
 
         // Actualizar métricas de Experiencia
         function updateExperienceMetrics() {
             if (!experienceData || experienceData.length === 0) return;
             
-            console.log('Actualizando métricas de Experiencia...');
+            console.log('Actualizando métricas de Experiencia con datos reales...');
+            console.log('Datos de Experiencia:', experienceData);
             
             const latest = experienceData[0];
             
-            const dailyActiveUsers = parseFloat(latest['Usuarios activos diarios'] || 0) || 0;
-            const totalVisits = parseFloat(latest['Visitas Totales'] || 0) || 0;
-            const avgSessionTime = latest['tiempo de sesión promedio'] || '0min';
-            const retentionDay1 = parseFloat(latest['retención día 1'] || 0) || 0;
+            // Usuarios activos diarios (ya es número)
+            const dailyActiveUsers = parseInt(latest['Usuarios activos diarios']) || 0;
             
+            // Visitas totales (ya es número)
+            const totalVisits = parseInt(latest['Visitas Totales']) || 0;
+            
+            // Tiempo de sesión promedio (formato "3,5" = 3.5 minutos)
+            const avgSessionTimeStr = latest['tiempo de sesión promedio'] || '0';
+            const avgSessionTime = avgSessionTimeStr.replace(',', '.') + 'min';
+            
+            // Retención día 1 (formato "0,03" = 0.03%)
+            const retentionStr = latest['retención día 1'] || '0';
+            const retentionDay1 = parseFloat(retentionStr.replace(',', '.')) || 0;
+            
+            // Tiempo total de interacción (ya viene calculado)
+            const totalInteractionTime = parseInt(latest['tiempo total interaccion']) || 0;
+            
+            console.log('Métricas parseadas:', {
+                dailyActiveUsers, totalVisits, avgSessionTime, retentionDay1, totalInteractionTime
+            });
+            
+            // Actualizar métricas básicas
             document.getElementById('dailyActiveUsers').textContent = formatNumber(dailyActiveUsers);
             document.getElementById('totalVisits').textContent = formatNumber(totalVisits);
             document.getElementById('avgSessionTime').textContent = avgSessionTime;
-            document.getElementById('retentionDay1').textContent = retentionDay1 + '%';
+            document.getElementById('retentionDay1').textContent = (retentionDay1 * 100).toFixed(2) + '%';
             
-            calculateTotalInteractionTime(totalVisits, avgSessionTime, latest);
+            // Actualizar indicadores de cambio
+            document.getElementById('dauChange').textContent = 'Usuarios únicos';
+            document.getElementById('visitsChange').textContent = 'Al mundo Yopiverso';
+            document.getElementById('sessionTimeChange').textContent = 'Promedio por usuario';
+            document.getElementById('retentionChange').textContent = 'Día siguiente';
             
-            console.log('Métricas de Experiencia actualizadas');
+            // Mostrar tiempo total de interacción (viene precalculado)
+            const formattedInteractionTime = formatInteractionTime(totalInteractionTime);
+            document.getElementById('totalInteractionTime').textContent = formattedInteractionTime;
+            document.getElementById('interactionChange').textContent = 'Tiempo total con marca';
+            
+            console.log('Métricas de Experiencia actualizadas correctamente');
+        }
+
+        // Formatear tiempo de interacción desde minutos
+        function formatInteractionTime(minutes) {
+            if (minutes >= 60) {
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                return hours + 'h ' + remainingMinutes + 'm';
+            } else {
+                return minutes + 'min';
+            }
+        }
+
+        // Calcular tiempo total de interacción
+        function calculateTotalInteractionTime(totalVisits, avgSessionTimeStr, dataRow) {
+            console.log('Calculando tiempo de interacción...');
+            
+            if (dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion']) {
+                const totalInteraction = dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion'];
+                document.getElementById('totalInteractionTime').textContent = totalInteraction;
+                document.getElementById('interactionChange').textContent = 'Datos precalculados';
+                return;
+            }
+            
+            let sessionMinutes = 0;
+            
+            if (avgSessionTimeStr && avgSessionTimeStr !== '0') {
+                const timeMatch = avgSessionTimeStr.match(/(\d+(?:\.\d+)?)/);
+                if (timeMatch) {
+                    sessionMinutes = parseFloat(timeMatch[1]);
+                    if (avgSessionTimeStr.toLowerCase().includes('h')) {
+                        sessionMinutes *= 60;
+                    }
+                }
+            }
+            
+            const totalInteractionMinutes = totalVisits * sessionMinutes;
+            
+            let formattedTime;
+            if (totalInteractionMinutes >= 60) {
+                const hours = Math.floor(totalInteractionMinutes / 60);
+                const minutes = Math.round(totalInteractionMinutes % 60);
+                formattedTime = hours + 'h ' + minutes + 'm';
+            } else {
+                formattedTime = Math.round(totalInteractionMinutes) + 'min';
+            }
+            
+            document.getElementById('totalInteractionTime').textContent = formattedTime;
+            document.getElementById('interactionChange').textContent = totalVisits + ' visitas × ' + avgSessionTimeStr;
+        }
+
+        // Actualizar gráficos
+        function updateCharts() {
+            console.log('Actualizando gráficos...');
+            updateEngagementChart();
+            updateROIChart();
+        }
+
+        // Gráfico de engagement
+        function updateEngagementChart() {
+            const ctx = document.getElementById('engagementChart').getContext('2d');
+            
+            if (engagementChart) {
+                engagementChart.destroy();
+            }
+
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const dailyActiveUsers = parseFloat(document.getElementById('dailyActiveUsers').textContent.replace(/,/g, '')) || 0;
+            const retentionDay1 = parseFloat(document.getElementById('retentionDay1').textContent.replace('%', '')) || 0;
+
+            engagementChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Visitas Totales', 'Usuarios Activos', 'Retención %'],
+                    datasets: [{
+                        label: 'Métricas de Engagement',
+                        data: [totalVisits, dailyActiveUsers, retentionDay1],
+                        backgroundColor: [colors.primary, colors.success, colors.accent],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // Gráfico de ROI
+        function updateROIChart() {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            
+            if (roiChart) {
+                roiChart.destroy();
+            }
+
+            const totalSpend = parseFloat(document.getElementById('totalSpend').textContent.replace(/[\$,]/g, '')) || 1;
+            const totalClicks = parseFloat(document.getElementById('totalClicks').textContent.replace(/,/g, '')) || 0;
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const totalImpressions = parseFloat(document.getElementById('totalImpressions').textContent.replace(/,/g, '')) || 1;
+
+            const ctr = (totalClicks / totalImpressions) * 100;
+            const costPerClick = totalSpend / (totalClicks || 1);
+            const costPerVisit = totalSpend / (totalVisits || 1);
+            const conversionRate = (totalVisits / (totalClicks || 1)) * 100;
+
+            roiChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        'CTR: ' + ctr.toFixed(2) + '%',
+                        'Conv: ' + conversionRate.toFixed(1) + '%',
+                        'CPC: $' + costPerClick.toFixed(2),
+                        'CPV: $' + costPerVisit.toFixed(2)
+                    ],
+                    datasets: [{
+                        data: [ctr, conversionRate, costPerClick * 10, costPerVisit * 10],
+                        backgroundColor: [colors.primary, colors.success, colors.warning, colors.accent],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // Actualizar tabla de campañas
+        function updateCampaignsTable() {
+            const container = document.getElementById('campaignsTableContainer');
+            
+            if (!adsData || adsData.length === 0) {
+                container.innerHTML = '<div class="no-data">📊 Carga el archivo CSV de campañas para ver el detalle</div>';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Campaña</th>
+                            <th>Targeting</th>
+                            <th>Formato</th>
+                            <th>Dispositivo</th>
+                            <th>Impresiones</th>
+                            <th>Clics</th>
+                            <th>Gasto (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            adsData.forEach(row => {
+                const gasto = parseFloat(row['Gasto (USD)'] || 0) || 0;
+                const status = gasto > 0 ? 'active' : 'pending';
+                const statusText = status === 'active' ? 'Activa' : 'Pendiente';
+                
+                tableHTML += `
+                    <tr>
+                        <td><span class="status-indicator ${status}"></span>${statusText}</td>
+                        <td>${row['Nombre Campaña'] || '-'}</td>
+                        <td>${row['Segmento Targeting'] || '-'}</td>
+                        <td>${row['Formato Anuncio'] || '-'}</td>
+                        <td>${row['Dispositivo'] || '-'}</td>
+                        <td>${formatNumber(row['Impresiones'] || 0)}</td>
+                        <td>${formatNumber(row['Clics'] || 0)}</td>
+                        <td>$${formatNumber(gasto)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // Funciones auxiliares
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '' || isNaN(num)) {
+                return '0';
+            }
+            if (typeof num === 'string') {
+                num = parseFloat(num.replace(/[^\d.,]/g, '')) || 0;
+            }
+            return new Intl.NumberFormat('es-CL').format(Math.round(num));
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            if (message) {
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = dateStr;
+        }
+
+        console.log('Dashboard Yopiverso cargado completamente');
+    </script>
+</body>
+</html>, '').replace(',', '')) || 0;
+                const itv = row['ITV'] || '0%';
+                
+                const status = gasto > 0 ? 'active' : 'pending';
+                const statusText = status === 'active' ? 'Activa' : 'Pendiente';
+                
+                console.log(`Fila ${index} para tabla:`, {
+                    impresiones, clics, visitas, gasto, itv
+                });
+                
+                tableHTML += `
+                    <tr>
+                        <td><span class="status-indicator ${status}"></span>${statusText}</td>
+                        <td>${row['Nombre Campaña'] || '-'}</td>
+                        <td>${row['Segmento Targeting'] || '-'}</td>
+                        <td>${row['Formato Anuncio'] || '-'}</td>
+                        <td>${row['Dispositivo'] || '-'}</td>
+                        <td>${formatNumber(impresiones)}</td>
+                        <td>${clics > 0 ? formatNumber(clics) : '-'}</td>
+                        <td>${formatNumber(visitas)}</td>
+                        <td>${formatNumber(gasto)}</td>
+                        <td>${itv}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+            
+            console.log('Tabla de campañas actualizada correctamente');
+        }
+
+        // Funciones auxiliares
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '' || isNaN(num)) {
+                return '0';
+            }
+            if (typeof num === 'string') {
+                num = parseFloat(num.replace(/[^\d.,]/g, '')) || 0;
+            }
+            return new Intl.NumberFormat('es-CL').format(Math.round(num));
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            if (message) {
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = dateStr;
+        }
+
+        console.log('Dashboard Yopiverso cargado completamente');
+    </script>
+</body>
+</html>, '').replace(',', '')) || 0;
+                
+                // Manejar visitas (con espacio en el nombre de columna)
+                const visits = parseInt(row['Visitas '] || row['Visitas']) || 0;
+                
+                totalImpressions += impressions;
+                totalClicks += clicks;
+                totalSpend += spend;
+                totalVisitsFromAds += visits;
+                
+                console.log(`Fila ${index} procesada:`, {
+                    impressions, clicks, spend, visits
+                });
+            });
+
+            console.log('Totales calculados:', {
+                totalImpressions, totalClicks, totalSpend, totalVisitsFromAds
+            });
+
+            // Actualizar la interfaz
+            document.getElementById('totalImpressions').textContent = formatNumber(totalImpressions);
+            document.getElementById('totalClicks').textContent = formatNumber(totalClicks);
+            document.getElementById('totalSpend').textContent = '
+
+        // Calcular tiempo total de interacción
+        function calculateTotalInteractionTime(totalVisits, avgSessionTimeStr, dataRow) {
+            console.log('Calculando tiempo de interacción...');
+            
+            if (dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion']) {
+                const totalInteraction = dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion'];
+                document.getElementById('totalInteractionTime').textContent = totalInteraction;
+                document.getElementById('interactionChange').textContent = 'Datos precalculados';
+                return;
+            }
+            
+            let sessionMinutes = 0;
+            
+            if (avgSessionTimeStr && avgSessionTimeStr !== '0') {
+                const timeMatch = avgSessionTimeStr.match(/(\d+(?:\.\d+)?)/);
+                if (timeMatch) {
+                    sessionMinutes = parseFloat(timeMatch[1]);
+                    if (avgSessionTimeStr.toLowerCase().includes('h')) {
+                        sessionMinutes *= 60;
+                    }
+                }
+            }
+            
+            const totalInteractionMinutes = totalVisits * sessionMinutes;
+            
+            let formattedTime;
+            if (totalInteractionMinutes >= 60) {
+                const hours = Math.floor(totalInteractionMinutes / 60);
+                const minutes = Math.round(totalInteractionMinutes % 60);
+                formattedTime = hours + 'h ' + minutes + 'm';
+            } else {
+                formattedTime = Math.round(totalInteractionMinutes) + 'min';
+            }
+            
+            document.getElementById('totalInteractionTime').textContent = formattedTime;
+            document.getElementById('interactionChange').textContent = totalVisits + ' visitas × ' + avgSessionTimeStr;
+        }
+
+        // Actualizar gráficos
+        function updateCharts() {
+            console.log('Actualizando gráficos...');
+            updateEngagementChart();
+            updateROIChart();
+        }
+
+        // Gráfico de engagement
+        function updateEngagementChart() {
+            const ctx = document.getElementById('engagementChart').getContext('2d');
+            
+            if (engagementChart) {
+                engagementChart.destroy();
+            }
+
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const dailyActiveUsers = parseFloat(document.getElementById('dailyActiveUsers').textContent.replace(/,/g, '')) || 0;
+            const retentionDay1 = parseFloat(document.getElementById('retentionDay1').textContent.replace('%', '')) || 0;
+
+            engagementChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Visitas Totales', 'Usuarios Activos', 'Retención %'],
+                    datasets: [{
+                        label: 'Métricas de Engagement',
+                        data: [totalVisits, dailyActiveUsers, retentionDay1],
+                        backgroundColor: [colors.primary, colors.success, colors.accent],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // Gráfico de ROI
+        function updateROIChart() {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            
+            if (roiChart) {
+                roiChart.destroy();
+            }
+
+            const totalSpend = parseFloat(document.getElementById('totalSpend').textContent.replace(/[\$,]/g, '')) || 1;
+            const totalClicks = parseFloat(document.getElementById('totalClicks').textContent.replace(/,/g, '')) || 0;
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const totalImpressions = parseFloat(document.getElementById('totalImpressions').textContent.replace(/,/g, '')) || 1;
+
+            const ctr = (totalClicks / totalImpressions) * 100;
+            const costPerClick = totalSpend / (totalClicks || 1);
+            const costPerVisit = totalSpend / (totalVisits || 1);
+            const conversionRate = (totalVisits / (totalClicks || 1)) * 100;
+
+            roiChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        'CTR: ' + ctr.toFixed(2) + '%',
+                        'Conv: ' + conversionRate.toFixed(1) + '%',
+                        'CPC: $' + costPerClick.toFixed(2),
+                        'CPV: $' + costPerVisit.toFixed(2)
+                    ],
+                    datasets: [{
+                        data: [ctr, conversionRate, costPerClick * 10, costPerVisit * 10],
+                        backgroundColor: [colors.primary, colors.success, colors.warning, colors.accent],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // Actualizar tabla de campañas
+        function updateCampaignsTable() {
+            const container = document.getElementById('campaignsTableContainer');
+            
+            if (!adsData || adsData.length === 0) {
+                container.innerHTML = '<div class="no-data">📊 Carga el archivo CSV de campañas para ver el detalle</div>';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Campaña</th>
+                            <th>Targeting</th>
+                            <th>Formato</th>
+                            <th>Dispositivo</th>
+                            <th>Impresiones</th>
+                            <th>Clics</th>
+                            <th>Gasto (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            adsData.forEach(row => {
+                const gasto = parseFloat(row['Gasto (USD)'] || 0) || 0;
+                const status = gasto > 0 ? 'active' : 'pending';
+                const statusText = status === 'active' ? 'Activa' : 'Pendiente';
+                
+                tableHTML += `
+                    <tr>
+                        <td><span class="status-indicator ${status}"></span>${statusText}</td>
+                        <td>${row['Nombre Campaña'] || '-'}</td>
+                        <td>${row['Segmento Targeting'] || '-'}</td>
+                        <td>${row['Formato Anuncio'] || '-'}</td>
+                        <td>${row['Dispositivo'] || '-'}</td>
+                        <td>${formatNumber(row['Impresiones'] || 0)}</td>
+                        <td>${formatNumber(row['Clics'] || 0)}</td>
+                        <td>$${formatNumber(gasto)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // Funciones auxiliares
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '' || isNaN(num)) {
+                return '0';
+            }
+            if (typeof num === 'string') {
+                num = parseFloat(num.replace(/[^\d.,]/g, '')) || 0;
+            }
+            return new Intl.NumberFormat('es-CL').format(Math.round(num));
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            if (message) {
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = dateStr;
+        }
+
+        console.log('Dashboard Yopiverso cargado completamente');
+    </script>
+</body>
+</html> + formatNumber(totalSpend);
+            
+            // Actualizar indicadores de cambio
+            document.getElementById('impressionsChange').textContent = 'Datos actualizados';
+            document.getElementById('clicksChange').textContent = 'Datos actualizados';
+            document.getElementById('spendChange').textContent = 'Datos actualizados';
+            
+            if (totalVisitsFromAds > 0) {
+                document.getElementById('totalVisits').textContent = formatNumber(totalVisitsFromAds);
+                document.getElementById('visitsChange').textContent = 'Desde anuncios';
+            }
+            
+            console.log('Métricas de Ads actualizadas correctamente');
+        }
+
+        // Actualizar métricas de Experiencia
+        function updateExperienceMetrics() {
+            if (!experienceData || experienceData.length === 0) return;
+            
+            console.log('Actualizando métricas de Experiencia con datos reales...');
+            console.log('Datos de Experiencia:', experienceData);
+            
+            const latest = experienceData[0];
+            
+            // Usuarios activos diarios (ya es número)
+            const dailyActiveUsers = parseInt(latest['Usuarios activos diarios']) || 0;
+            
+            // Visitas totales (ya es número)
+            const totalVisits = parseInt(latest['Visitas Totales']) || 0;
+            
+            // Tiempo de sesión promedio (formato "3,5" = 3.5 minutos)
+            const avgSessionTimeStr = latest['tiempo de sesión promedio'] || '0';
+            const avgSessionTime = avgSessionTimeStr.replace(',', '.') + 'min';
+            
+            // Retención día 1 (formato "0,03" = 0.03%)
+            const retentionStr = latest['retención día 1'] || '0';
+            const retentionDay1 = parseFloat(retentionStr.replace(',', '.')) || 0;
+            
+            // Tiempo total de interacción (ya viene calculado)
+            const totalInteractionTime = parseInt(latest['tiempo total interaccion']) || 0;
+            
+            console.log('Métricas parseadas:', {
+                dailyActiveUsers, totalVisits, avgSessionTime, retentionDay1, totalInteractionTime
+            });
+            
+            // Actualizar métricas básicas
+            document.getElementById('dailyActiveUsers').textContent = formatNumber(dailyActiveUsers);
+            document.getElementById('totalVisits').textContent = formatNumber(totalVisits);
+            document.getElementById('avgSessionTime').textContent = avgSessionTime;
+            document.getElementById('retentionDay1').textContent = (retentionDay1 * 100).toFixed(2) + '%';
+            
+            // Actualizar indicadores de cambio
+            document.getElementById('dauChange').textContent = 'Usuarios únicos';
+            document.getElementById('visitsChange').textContent = 'Al mundo Yopiverso';
+            document.getElementById('sessionTimeChange').textContent = 'Promedio por usuario';
+            document.getElementById('retentionChange').textContent = 'Día siguiente';
+            
+            // Mostrar tiempo total de interacción (viene precalculado)
+            const formattedInteractionTime = formatInteractionTime(totalInteractionTime);
+            document.getElementById('totalInteractionTime').textContent = formattedInteractionTime;
+            document.getElementById('interactionChange').textContent = 'Tiempo total con marca';
+            
+            console.log('Métricas de Experiencia actualizadas correctamente');
+        }
+
+        // Formatear tiempo de interacción desde minutos
+        function formatInteractionTime(minutes) {
+            if (minutes >= 60) {
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                return hours + 'h ' + remainingMinutes + 'm';
+            } else {
+                return minutes + 'min';
+            }
         }
 
         // Calcular tiempo total de interacción
