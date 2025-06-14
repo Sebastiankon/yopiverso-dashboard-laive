@@ -416,12 +416,12 @@
         <!-- Gráficos -->
         <div class="charts-section">
             <div class="chart-container">
-                <h3 class="chart-title">Rendimiento por Dispositivo</h3>
-                <canvas id="deviceChart"></canvas>
+                <h3 class="chart-title">Engagement y Retención</h3>
+                <canvas id="engagementChart"></canvas>
             </div>
             <div class="chart-container">
-                <h3 class="chart-title">Métricas de Costo</h3>
-                <canvas id="costChart"></canvas>
+                <h3 class="chart-title">Rendimiento de Inversión</h3>
+                <canvas id="roiChart"></canvas>
             </div>
         </div>
 
@@ -444,8 +444,8 @@
     <script>
         let adsData = [];
         let experienceData = [];
-        let deviceChart = null;
-        let costChart = null;
+        let engagementChart = null;
+        let roiChart = null;
 
         // Configuración de colores para gráficos
         const colors = {
@@ -464,18 +464,43 @@
             const file = event.target.files[0];
             if (file) {
                 showLoading(true);
+                console.log('Procesando archivo de Ads:', file.name);
+                
                 Papa.parse(file, {
                     header: true,
-                    dynamicTyping: true,
+                    dynamicTyping: false, // Cambiado a false para evitar problemas
                     skipEmptyLines: true,
+                    delimiter: ",",
                     complete: function(results) {
-                        adsData = results.data;
-                        updateAdsMetrics();
-                        updateCharts();
-                        updateCampaignsTable();
-                        updateLastUpdate();
+                        console.log('Datos parseados de Ads:', results);
+                        if (results.errors && results.errors.length > 0) {
+                            console.error('Errores en parsing:', results.errors);
+                        }
+                        
+                        adsData = results.data.filter(row => {
+                            // Filtrar filas vacías
+                            return Object.values(row).some(val => val && val.toString().trim() !== '');
+                        });
+                        
+                        console.log('Datos filtrados de Ads:', adsData);
+                        
+                        try {
+                            updateAdsMetrics();
+                            updateCharts();
+                            updateCampaignsTable();
+                            updateLastUpdate();
+                            showSuccessMessage();
+                        } catch (error) {
+                            console.error('Error actualizando métricas de Ads:', error);
+                            alert('Error procesando datos de Ads: ' + error.message);
+                        }
+                        
                         showLoading(false);
-                        showSuccessMessage();
+                    },
+                    error: function(error) {
+                        console.error('Error parseando archivo de Ads:', error);
+                        alert('Error leyendo archivo de Ads: ' + error.message);
+                        showLoading(false);
                     }
                 });
             }
@@ -485,16 +510,41 @@
             const file = event.target.files[0];
             if (file) {
                 showLoading(true);
+                console.log('Procesando archivo de Experiencia:', file.name);
+                
                 Papa.parse(file, {
                     header: true,
-                    dynamicTyping: true,
+                    dynamicTyping: false, // Cambiado a false para evitar problemas
                     skipEmptyLines: true,
+                    delimiter: ",",
                     complete: function(results) {
-                        experienceData = results.data;
-                        updateExperienceMetrics();
-                        updateLastUpdate();
+                        console.log('Datos parseados de Experiencia:', results);
+                        if (results.errors && results.errors.length > 0) {
+                            console.error('Errores en parsing:', results.errors);
+                        }
+                        
+                        experienceData = results.data.filter(row => {
+                            // Filtrar filas vacías
+                            return Object.values(row).some(val => val && val.toString().trim() !== '');
+                        });
+                        
+                        console.log('Datos filtrados de Experiencia:', experienceData);
+                        
+                        try {
+                            updateExperienceMetrics();
+                            updateLastUpdate();
+                            showSuccessMessage();
+                        } catch (error) {
+                            console.error('Error actualizando métricas de Experiencia:', error);
+                            alert('Error procesando datos de Experiencia: ' + error.message);
+                        }
+                        
                         showLoading(false);
-                        showSuccessMessage();
+                    },
+                    error: function(error) {
+                        console.error('Error parseando archivo de Experiencia:', error);
+                        alert('Error leyendo archivo de Experiencia: ' + error.message);
+                        showLoading(false);
                     }
                 });
             }
@@ -507,16 +557,244 @@
             let totalImpressions = 0;
             let totalClicks = 0;
             let totalSpend = 0;
+            let totalVisitsFromAds = 0;
 
             adsData.forEach(row => {
                 totalImpressions += parseFloat(row['Impresiones']) || 0;
                 totalClicks += parseFloat(row['Clics']) || 0;
                 totalSpend += parseFloat(row['Gasto (USD)']) || 0;
+                totalVisitsFromAds += parseFloat(row['Visitas'] || row['Visitas ']) || 0; // Maneja ambos nombres de columna
             });
 
             document.getElementById('totalImpressions').textContent = formatNumber(totalImpressions);
             document.getElementById('totalClicks').textContent = formatNumber(totalClicks);
-            document.getElementById('totalSpend').textContent = '$' + formatNumber(totalSpend);
+            document.getElementById('totalSpend').textContent = '
+
+        function updateCharts() {
+            updateEngagementChart();
+            updateROIChart();
+        }
+
+        function updateEngagementChart() {
+            const ctx = document.getElementById('engagementChart').getContext('2d');
+            
+            if (engagementChart) {
+                engagementChart.destroy();
+            }
+
+            // Métricas de engagement
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const dailyActiveUsers = parseFloat(document.getElementById('dailyActiveUsers').textContent.replace(/,/g, '')) || 0;
+            const retentionDay1 = parseFloat(document.getElementById('retentionDay1').textContent.replace('%', '')) || 0;
+
+            engagementChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Visitas Totales', 'Usuarios Activos Diarios', 'Retención Día 1 (%)'],
+                    datasets: [{
+                        label: 'Métricas de Engagement',
+                        data: [totalVisits, dailyActiveUsers, retentionDay1],
+                        backgroundColor: [
+                            colors.primary,
+                            colors.success,
+                            colors.accent
+                        ],
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateROIChart() {
+            const ctx = document.getElementById('roiChart').getContext('2d');
+            
+            if (roiChart) {
+                roiChart.destroy();
+            }
+
+            // Calcular métricas de ROI
+            const totalSpend = parseFloat(document.getElementById('totalSpend').textContent.replace(/[\$,]/g, '')) || 1;
+            const totalClicks = parseFloat(document.getElementById('totalClicks').textContent.replace(/,/g, '')) || 0;
+            const totalVisits = parseFloat(document.getElementById('totalVisits').textContent.replace(/,/g, '')) || 0;
+            const totalImpressions = parseFloat(document.getElementById('totalImpressions').textContent.replace(/,/g, '')) || 1;
+
+            const costPerClick = totalSpend / (totalClicks || 1);
+            const costPerVisit = totalSpend / (totalVisits || 1);
+            const ctr = (totalClicks / totalImpressions) * 100; // Click Through Rate
+            const visitConversionRate = (totalVisits / (totalClicks || 1)) * 100; // Conversion from click to visit
+
+            roiChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        `CTR: ${ctr.toFixed(2)}%`,
+                        `Conv. Visitas: ${visitConversionRate.toFixed(1)}%`,
+                        `Costo por Clic: ${costPerClick.toFixed(2)}`,
+                        `Costo por Visita: ${costPerVisit.toFixed(2)}`
+                    ],
+                    datasets: [{
+                        data: [ctr, visitConversionRate, costPerClick * 10, costPerVisit * 10], // Escalado para visualización
+                        backgroundColor: [
+                            colors.primary,
+                            colors.success,
+                            colors.warning,
+                            colors.accent
+                        ],
+                        borderWidth: 0,
+                        hoverBorderWidth: 3,
+                        hoverBorderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label;
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCampaignsTable() {
+            const container = document.getElementById('campaignsTableContainer');
+            
+            if (adsData.length === 0) {
+                container.innerHTML = '<div class="no-data">📊 Carga el archivo CSV de campañas para ver el detalle</div>';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Campaña</th>
+                            <th>Targeting</th>
+                            <th>Formato</th>
+                            <th>Dispositivo</th>
+                            <th>Impresiones</th>
+                            <th>Clics</th>
+                            <th>Gasto (USD)</th>
+                            <th>CPC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            adsData.forEach(row => {
+                const status = (parseFloat(row['Gasto (USD)']) || 0) > 0 ? 'active' : 'pending';
+                tableHTML += `
+                    <tr>
+                        <td><span class="status-indicator ${status}"></span>${status === 'active' ? 'Activa' : 'Pendiente'}</td>
+                        <td>${row['Nombre Campaña'] || '-'}</td>
+                        <td>${row['Segmento Targeting'] || '-'}</td>
+                        <td>${row['Formato Anuncio'] || '-'}</td>
+                        <td>${row['Dispositivo'] || '-'}</td>
+                        <td>${formatNumber(row['Impresiones'] || 0)}</td>
+                        <td>${formatNumber(row['Clics'] || 0)}</td>
+                        <td>$${formatNumber(row['Gasto (USD)'] || 0)}</td>
+                        <td>$${formatNumber(row['CPC'] || 0)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = dateStr;
+        }
+
+        function formatNumber(num) {
+            // Manejar casos especiales
+            if (num === null || num === undefined || num === '' || isNaN(num)) {
+                return '0';
+            }
+            
+            // Convertir a número si es string
+            if (typeof num === 'string') {
+                // Limpiar el string de caracteres no numéricos excepto punto y coma
+                const cleanNum = num.replace(/[^\d.,]/g, '');
+                num = parseFloat(cleanNum) || 0;
+            }
+            
+            return new Intl.NumberFormat('es-CL').format(Math.round(num));
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            if (message) {
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Inicializar dashboard con datos de ejemplo o vacío
+        updateLastUpdate();
+    </script>
+</body>
+</html> + formatNumber(totalSpend);
+            
+            // Si hay visitas en el CSV de ads, las mostramos (sino se actualizará con experienceData)
+            if (totalVisitsFromAds > 0) {
+                document.getElementById('totalVisits').textContent = formatNumber(totalVisitsFromAds);
+            }
         }
 
         function updateExperienceMetrics() {
@@ -524,9 +802,61 @@
 
             const latest = experienceData[0];
             
-            document.getElementById('dailyActiveUsers').textContent = formatNumber(latest['Usuarios activos diarios'] || 0);
-            document.getElementById('avgSessionTime').textContent = latest['tiempo de sesión promedio'] || '0min';
-            document.getElementById('retentionDay1').textContent = (latest['retención día 1'] || '0') + '%';
+            const dailyActiveUsers = parseFloat(latest['Usuarios activos diarios']) || 0;
+            const totalVisits = parseFloat(latest['Visitas Totales']) || 0;
+            const avgSessionTime = latest['tiempo de sesión promedio'] || '0';
+            const retentionDay1 = latest['retención día 1'] || '0';
+            
+            // Actualizar métricas básicas
+            document.getElementById('dailyActiveUsers').textContent = formatNumber(dailyActiveUsers);
+            document.getElementById('totalVisits').textContent = formatNumber(totalVisits);
+            document.getElementById('avgSessionTime').textContent = avgSessionTime;
+            document.getElementById('retentionDay1').textContent = retentionDay1 + '%';
+            
+            // Calcular tiempo total de interacción con la marca
+            calculateTotalInteractionTime(totalVisits, avgSessionTime, latest);
+        }
+
+        function calculateTotalInteractionTime(totalVisits, avgSessionTimeStr, dataRow) {
+            // Si ya existe una columna específica para tiempo de interacción, usarla
+            if (dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion']) {
+                const totalInteraction = dataRow['tiempo total interaccion'] || dataRow['Tiempo Total Interaccion'];
+                document.getElementById('totalInteractionTime').textContent = totalInteraction;
+                return;
+            }
+            
+            // Sino, calcular: Visitas Totales × Tiempo Promedio de Sesión
+            let sessionMinutes = 0;
+            
+            // Extraer minutos del string de tiempo promedio
+            if (avgSessionTimeStr && avgSessionTimeStr !== '0') {
+                const timeMatch = avgSessionTimeStr.match(/(\d+(?:\.\d+)?)/);
+                if (timeMatch) {
+                    sessionMinutes = parseFloat(timeMatch[1]);
+                    
+                    // Si incluye "h" o "hora", convertir a minutos
+                    if (avgSessionTimeStr.toLowerCase().includes('h')) {
+                        sessionMinutes *= 60;
+                    }
+                }
+            }
+            
+            const totalInteractionMinutes = totalVisits * sessionMinutes;
+            
+            // Formatear tiempo total
+            let formattedTime;
+            if (totalInteractionMinutes >= 60) {
+                const hours = Math.floor(totalInteractionMinutes / 60);
+                const minutes = Math.round(totalInteractionMinutes % 60);
+                formattedTime = `${formatNumber(hours)}h ${minutes}m`;
+            } else {
+                formattedTime = `${formatNumber(totalInteractionMinutes)}min`;
+            }
+            
+            document.getElementById('totalInteractionTime').textContent = formattedTime;
+            
+            // Actualizar el texto explicativo
+            document.getElementById('interactionChange').textContent = `${formatNumber(totalVisits)} visitas × ${avgSessionTimeStr}`;
         }
 
         function updateCharts() {
